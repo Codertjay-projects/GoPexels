@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 const (
@@ -60,6 +62,48 @@ type PhotoSource struct {
 	Square    string `json:"square"`
 	Landscape string `json:"landscape"`
 	Tiny      string `json:"tiny"`
+}
+
+type VideoSearchResult struct {
+	Page         int32   `json:"page"`
+	PerPage      int32   `json:"per_page"`
+	TotalResults int     `json:"total_results"`
+	NextPage     string  `json:"next_page"`
+	Videos       []Video `json:"videos"`
+}
+type Video struct {
+	Id            int32           `json:"id"`
+	Width         int32           `json:"width"`
+	Height        int32           `json:"height"`
+	Url           string          `json:"url"`
+	Image         string          `json:"image"`
+	FullRes       interface{}     `json:"full_res"`
+	Duration      float64         `json:"duration"`
+	VideoFiles    []VideoFiles    `json:"video_files"`
+	VideoPictures []VideoPictures `json:"video_pictures"`
+}
+
+type PopularVideos struct {
+	Page         int32   `json:"page"`
+	PerPage      int32   `json:"per_page"`
+	TotalResults int32   `json:"total_results"`
+	Url          string  `json:"url"`
+	Videos       []Video `json:"videos"`
+}
+
+type VideoFiles struct {
+	Id       int32  `json:"id"`
+	Quality  string `json:"quality"`
+	FileType string `json:"file_type"`
+	Width    int32  `json:"width"`
+	Height   int32  `json:"height"`
+	Link     string `json:"link"`
+}
+
+type VideoPictures struct {
+	Id      int32  `json:"id"`
+	Picture string `json:"picture"`
+	Nr      int32  `json:"nr"`
 }
 
 func (c *Client) SearchPhotos(query string, page int32, perPage int32) (*SearchResult, error) {
@@ -139,6 +183,66 @@ func (c *Client) GetPhoto(id int32) (*Photo, error) {
 		return nil, err
 	}
 	return &result, nil
+}
+
+func (c *Client) SearchVideo(query, perPage int, page int) (*VideoSearchResult, error) {
+	url := fmt.Sprintf(VideoAPI+".search?query=%s&per_page=%d&page=%d", query, perPage, page)
+	resp, err := c.RequestDoWithAUth("GET", url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	var result VideoSearchResult
+	if err = json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+	return &result, err
+}
+
+func (c *Client) PopularVideo(perPage, page int) (*PopularVideos, error) {
+	url := fmt.Sprintf(VideoAPI+"/popular?per_page=%d&page=%d", perPage, page)
+	c.RequestDoWithAUth("GET", url)
+	resp, err := c.RequestDoWithAUth("GET", url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	var result PopularVideos
+	if err = json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+	return &result, err
+}
+
+func (c *Client) GetRandomVideo() (*Video, error) {
+	rand.Seed(time.Now().Unix())
+	randNum := rand.Intn(1001)
+	result, err := c.PopularVideo(1, randNum)
+	if err == nil && len(result.Videos) == 1 {
+		return &result.Videos[0], nil
+	}
+	return nil, err
+}
+func (c *Client) GetRemainingRequestInThisMonth() int32 {
+	return c.RemainingTimes
+}
+
+func (c *Client) GetRandomPhoto() (*Photo, error) {
+	rand.Seed(time.Now().Unix())
+	randum := rand.Intn(1001)
+	result, err := c.CuratedPhotos(1, randum)
+	if err == nil && len(result.Photos) == 1 {
+		return &result.Photos[0], nil
+	}
+	return nil, err
 }
 
 func main() {
