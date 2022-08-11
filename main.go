@@ -13,7 +13,7 @@ import (
 
 const (
 	PhotoAPI = "https://api.pexels.com/v1"
-	VideoAPI = "https://api.pexels.com/vi"
+	VideoAPI = "https://api.pexels.com/videos/"
 )
 
 type Client struct {
@@ -108,6 +108,7 @@ type VideoPictures struct {
 
 func (c *Client) SearchPhotos(query string, page int32, perPage int32) (*SearchResult, error) {
 	url := fmt.Sprintf(PhotoAPI+"/search?query=%s&per_page=%d&page=%d", query, perPage, page)
+	fmt.Println(url)
 	resp, err := c.RequestDoWithAUth("GET", url)
 	if err != nil {
 		fmt.Println("Error occurred while authentication")
@@ -185,9 +186,11 @@ func (c *Client) GetPhoto(id int32) (*Photo, error) {
 	return &result, nil
 }
 
-func (c *Client) SearchVideo(query, perPage int, page int) (*VideoSearchResult, error) {
-	url := fmt.Sprintf(VideoAPI+".search?query=%s&per_page=%d&page=%d", query, perPage, page)
+func (c *Client) SearchVideo(query string, perPage int, page int) (*VideoSearchResult, error) {
+	url := fmt.Sprintf(VideoAPI+"/search?query=%s&per_page=%d&page=%d", query, perPage, page)
 	resp, err := c.RequestDoWithAUth("GET", url)
+	fmt.Println(url)
+
 	if err != nil {
 		return nil, err
 	}
@@ -246,16 +249,18 @@ func (c *Client) GetRandomPhoto() (*Photo, error) {
 }
 
 func main() {
-	os.Setenv("PexelsToken", "")
 	var Token = os.Getenv("PexelsToken")
 
 	var c = NewClient(Token)
-	result, err := c.SearchPhotos("waves", 1, 50)
+	//result, err := c.SearchVideo("waves", 1, 50)
+	//result, err := c.SearchPhotos("waves", 1, 50)
+	//result, err := c.GetRandomPhoto()
+	result, err := c.GetRandomVideo()
 	if err != nil {
 		fmt.Errorf("Search error : %v", err)
 	}
-	if result.Page == 0 {
-		fmt.Errorf("Search result is wrong")
-	}
+	//if result.Page == 0 {
+	//	fmt.Errorf("Search result is wrong")
+	//}
 	fmt.Println(result)
 }
